@@ -1,0 +1,58 @@
+version: '3.6'
+services:
+  db:
+    image: postgres
+    #hostname: postgres
+    container_name: db
+    environment:
+      POSTGRES_PASSWORD: compose-postgres
+      POSTGRES_USER: compose-postgres
+      POSTGRES_DB: compose-postgres
+    ports:
+      - target: 5432
+        published: 5433
+        protocol: tcp
+        mode: host
+    networks:
+      - backdb
+    expose:
+      - 5433
+
+  back:
+    build:
+      context: ./back
+      target:  finalApp
+    image: swed-back
+    container_name: swed-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/compose-postgres
+      - SPRING_DATASOURCE_USERNAME=compose-postgres
+      - SPRING_DATASOURCE_PASSWORD=compose-postgres
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    networks:
+      - frontback
+      - backdb
+
+  front:
+    build: ./front
+    image: swed-front
+    container_name: swed-front
+    ports:
+      - "8081:8081"
+    depends_on:
+      - back
+    environment:
+      - HOST=0.0.0.0
+      - VUE_APP_MY_VARIABLE=http://swed-back:8090
+    networks:
+      - frontback
+
+networks:
+  backdb:
+    driver: bridge
+  frontback:
+    driver: bridge
